@@ -28,3 +28,6 @@ loguru>=0.7.0
 
 # Quality validation
 pyglet>=2.0.0  # for trimesh rendering
+
+# Web UI
+gradio>=4.20.0

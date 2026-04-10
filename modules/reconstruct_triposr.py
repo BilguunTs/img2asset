@@ -53,6 +53,11 @@ class TripoSRReconstructor:
         self._device = self._detect_device()
         logger.info(f"Loading TripoSR on {self._device}...")
 
+        # Suppress xatlas import errors — we skip it intentionally on Apple Silicon
+        import sys, types
+        if "xatlas" not in sys.modules:
+            sys.modules["xatlas"] = types.ModuleType("xatlas")  # stub
+
         try:
             from tsr.system import TSR
 

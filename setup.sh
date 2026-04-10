@@ -5,6 +5,9 @@
 # Usage:
 #   chmod +x setup.sh
 #   ./setup.sh
+#
+#   Override Python interpreter:
+#   PYTHON=/opt/homebrew/bin/python3.11 ./setup.sh
 
 set -e
 
@@ -31,7 +34,9 @@ echo ""
 # ── 1. Python version check ───────────────────────────────────────────────────
 
 info "Checking Python..."
-PYTHON=$(command -v python3 || command -v python || error "Python not found. Install Python 3.10+")
+# Allow override via PYTHON env var, e.g.: PYTHON=/opt/homebrew/bin/python3.11 ./setup.sh
+PYTHON="${PYTHON:-$(command -v python3.11 || command -v python3.10 || command -v python3 || command -v python)}"
+[ -z "$PYTHON" ] && error "Python not found. Install Python 3.10+ (brew install python@3.11)"
 PY_VERSION=$("$PYTHON" -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
 PY_MAJOR=$("$PYTHON" -c "import sys; print(sys.version_info.major)")
 PY_MINOR=$("$PYTHON" -c "import sys; print(sys.version_info.minor)")
@@ -69,6 +74,7 @@ fi
 info "Installing pipeline dependencies..."
 "$PYTHON" -m pip install --upgrade pip -q
 "$PYTHON" -m pip install -r "$ROOT/requirements.txt" -q
+"$PYTHON" -m pip install gradio -q
 success "Pipeline dependencies installed"
 
 # ── 5. Optional: rembg for background removal ─────────────────────────────────
@@ -100,7 +106,11 @@ if [ -d "$DEPS_DIR/TripoSR" ]; then
 else
   git clone https://github.com/VAST-AI-Research/TripoSR "$DEPS_DIR/TripoSR" -q
 fi
-"$PYTHON" -m pip install -r "$DEPS_DIR/TripoSR/requirements.txt" -q
+# xatlas fails to build on Apple Silicon with newer CMake (pybind11 version conflict).
+# We do UV unwrapping in Blender instead, so it's safe to skip entirely.
+info "Installing TripoSR dependencies (skipping xatlas — handled by Blender)..."
+grep -iv "xatlas" "$DEPS_DIR/TripoSR/requirements.txt" > /tmp/triposr_req.txt
+"$PYTHON" -m pip install -r /tmp/triposr_req.txt -q
 success "TripoSR ready"
 
 info "Downloading TripoSR weights..."
@@ -196,7 +206,13 @@ fi
 echo ""
 echo "  To use:"
 echo "    source .env"
-echo "    python run.py info                          # confirm backend"
+echo ""
+echo "    # Web UI (recommended)"
+echo "    python app.py                               # open http://localhost:7860"
+echo "    python app.py --share                       # public link (remote GPU)"
+echo ""
+echo "    # CLI"
+echo "    python run.py info"
 echo "    python run.py single --image path/to/ref.png"
 echo "    python run.py batch  --batch ./references/"
 echo ""

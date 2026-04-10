@@ -68,13 +68,30 @@ pip install rembg
 
 ## Usage
 
-### Single image
+### Web UI (recommended)
+
+```bash
+source .env
+python app.py
+# open http://localhost:7860
+```
+
+Drop an image, tweak settings in the sidebar, hit **Generate**. The 3D viewer shows the result inline and you can download the `.glb` directly.
+
+For a public shareable link (e.g. running on a remote GPU machine):
+```bash
+python app.py --share
+```
+
+---
+
+### CLI — Single image
 
 ```bash
 python run.py single --image path/to/reference.png
 ```
 
-### Single image with overrides
+### CLI — Single image with overrides
 
 ```bash
 python run.py single \
@@ -83,7 +100,7 @@ python run.py single \
   --no-bake
 ```
 
-### Batch (folder of images)
+### CLI — Batch (folder of images)
 
 ```bash
 python run.py batch --batch ./references/
