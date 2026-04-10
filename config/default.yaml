@@ -1,0 +1,38 @@
+pipeline:
+  name: img2asset
+  version: "0.1.0"
+
+multiview:
+  model: wonder3d
+  num_views: 6                  # views to generate around the object
+  image_size: 256               # input resolution
+  remove_background: true       # auto-remove bg before inference
+  output_dir: outputs/views
+
+reconstruct:
+  model: instantmesh
+  mesh_format: glb              # glb or obj
+  output_dir: outputs/meshes
+
+cleanup:
+  blender_bin: blender          # path to blender binary (or just "blender" if in PATH)
+  target_poly_count: 8000       # decimation target for game assets
+  smooth_iterations: 2
+  fill_holes: true
+  unwrap_uvs: true
+  bake_texture: true
+  texture_size: 1024            # px
+  output_dir: outputs/final
+
+validation:
+  enabled: true
+  check_manifold: true
+  check_holes: true
+  max_poly_warn: 15000          # warn if above this after cleanup
+  render_preview: true          # render turntable preview PNGs
+  preview_frames: 8
+
+batch:
+  max_workers: 1                # parallel jobs (1 = sequential, safe default)
+  skip_existing: true           # skip if output already exists
+  fail_fast: false              # continue batch on individual failure

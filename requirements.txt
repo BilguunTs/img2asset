@@ -1,0 +1,30 @@
+# Core
+torch>=2.1.0
+torchvision>=0.16.0
+numpy>=1.24.0
+Pillow>=10.0.0
+opencv-python>=4.8.0
+scipy>=1.11.0
+
+# Wonder3D dependencies
+diffusers>=0.24.0
+transformers>=4.35.0
+accelerate>=0.24.0
+einops>=0.7.0
+omegaconf>=2.3.0
+
+# InstantMesh dependencies
+huggingface-hub>=0.19.0
+trimesh>=4.0.0
+pymeshlab>=2023.12
+open3d>=0.18.0
+
+# Pipeline utilities
+click>=8.1.0
+pyyaml>=6.0.0
+rich>=13.0.0
+tqdm>=4.66.0
+loguru>=0.7.0
+
+# Quality validation
+pyglet>=2.0.0  # for trimesh rendering
