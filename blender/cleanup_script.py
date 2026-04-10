@@ -110,7 +110,7 @@ def unwrap_uvs(obj):
     bpy.ops.object.mode_set(mode="OBJECT")
 
 
-def bake_texture(obj, texture_size: int):
+def bake_texture(obj, texture_size: int, output_path: str = None):
     """Bake vertex colors or existing material to a new texture."""
     mat = bpy.data.materials.new(name="BakedMat")
     mat.use_nodes = True
@@ -150,8 +150,13 @@ def bake_texture(obj, texture_size: int):
 
     bpy.ops.object.bake(type="DIFFUSE", pass_filter={"COLOR"}, use_selected_to_active=False)
 
-    # Save baked image alongside output
-    img.filepath_raw = "//baked_texture.png"
+    # Save baked image alongside output using an absolute path
+    import os
+    if output_path:
+        tex_path = os.path.join(os.path.dirname(os.path.abspath(output_path)), "baked_texture.png")
+    else:
+        tex_path = os.path.join(os.getcwd(), "baked_texture.png")
+    img.filepath_raw = tex_path
     img.file_format = "PNG"
     img.save()
 
@@ -217,7 +222,7 @@ def main():
 
     if args.bake_texture:
         print("  Baking texture...")
-        bake_texture(obj, args.texture_size)
+        bake_texture(obj, args.texture_size, output_path=args.output)
 
     print("  Exporting...")
     export_mesh(obj, args.output)

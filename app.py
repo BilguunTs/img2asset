@@ -19,7 +19,9 @@ from loguru import logger
 from modules.backend import detect, select_pipeline, log_backend_info
 from modules.reconstruct_triposr import TripoSRReconstructor, TripoSRConfig
 from modules.multiview import MultiviewGenerator, MultiviewConfig
+from modules.multiview_zero123 import Zero123MultiviewGenerator, Zero123Config
 from modules.reconstruct import MeshReconstructor, ReconstructConfig
+from modules.reconstruct_crm import CRMReconstructor, CRMConfig
 from modules.cleanup import BlenderCleanup, CleanupConfig
 from modules.validate import MeshValidator, ValidationConfig
 
@@ -34,7 +36,7 @@ log_backend_info(BACKEND, MODE)
 
 BACKEND_LABEL = {
     "cuda": "CUDA (Full pipeline — Wonder3D → InstantMesh)",
-    "mps":  "Apple Silicon MPS (TripoSR)",
+    "mps":  "Apple Silicon MPS (Zero123++ → CRM)",
     "cpu":  "CPU (TripoSR — slow)",
 }.get(BACKEND, BACKEND)
 
@@ -83,6 +85,14 @@ def run(
         remove_background=remove_background,
         output_dir=DEFAULT_CFG.get("multiview", {}).get("output_dir", "outputs/views"),
     )
+    z123_cfg = Zero123Config(
+        remove_background=remove_background,
+        output_dir=DEFAULT_CFG.get("multiview", {}).get("output_dir", "outputs/views"),
+    )
+    crm_cfg = CRMConfig(
+        mc_resolution=int(mc_resolution),
+        output_dir=DEFAULT_CFG.get("reconstruct", {}).get("output_dir", "outputs/meshes"),
+    )
 
     # Save uploaded image to a temp file
     with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
@@ -99,6 +109,17 @@ def run(
 
             raw_mesh = TripoSRReconstructor(tsr_cfg).reconstruct(str(image_path), name=name)
             logs.append("TripoSR reconstruction done.")
+
+        elif mode == "zero123":
+            yield None, None, "Generating multi-view images (Zero123++)...", ""
+
+            multiview_result = Zero123MultiviewGenerator(z123_cfg).generate(str(image_path))
+            logs.append(f"Generated {len(multiview_result['color_views'])} views with Zero123++.")
+
+            yield None, None, "Reconstructing mesh (CRM)...", "\n".join(logs)
+
+            raw_mesh = CRMReconstructor(crm_cfg).reconstruct(multiview_result, name=name)
+            logs.append("CRM reconstruction done.")
 
         else:
             yield None, None, "Generating multi-view images (Wonder3D)...", ""
@@ -180,10 +201,10 @@ with gr.Blocks(title="img2asset") as demo:
 
             with gr.Accordion("Settings", open=False):
                 force_backend = gr.Radio(
-                    choices=["auto", "triposr", "full"],
+                    choices=["auto", "triposr", "zero123", "full"],
                     value="auto",
                     label="Pipeline",
-                    info="'auto' picks based on your GPU. 'full' requires CUDA.",
+                    info="'auto' picks best for your GPU. 'zero123' = Zero123++→CRM (MPS). 'full' requires CUDA.",
                 )
                 remove_background = gr.Checkbox(
                     value=True,

@@ -21,6 +21,8 @@ class TripoSRConfig:
     mesh_format: str = "glb"
     chunk_size: int = 8192          # lower = less VRAM, slower
     mc_resolution: int = 256        # marching cubes resolution (128=fast, 256=quality)
+    mc_threshold: float = 10.0      # isosurface threshold — lower captures more surface detail
+    foreground_ratio: float = 0.90  # how much of the frame the object fills (0.85–0.95)
     remove_background: bool = True
     image_size: int = 512
     output_dir: str = "outputs/meshes"
@@ -80,21 +82,23 @@ class TripoSRReconstructor:
     def _preprocess(self, image_path: str):
         from PIL import Image
         import numpy as np
+        from tsr.utils import remove_background, resize_foreground
+        import rembg
 
         img = Image.open(image_path).convert("RGBA")
 
         if self.config.remove_background:
-            try:
-                from rembg import remove
-                logger.info("Removing background...")
-                img = remove(img)
-            except ImportError:
-                logger.warning("rembg not installed — skipping background removal")
+            logger.info("Removing background...")
+            session = rembg.new_session()
+            img = remove_background(img, rembg_session=session)
 
-        # Composite onto white, resize
-        bg = Image.new("RGBA", img.size, (255, 255, 255, 255))
-        bg.paste(img, mask=img.split()[3])
-        img = bg.convert("RGB").resize(
+        # Crop to object bbox and add padding
+        img = resize_foreground(img, ratio=self.config.foreground_ratio)
+
+        # Composite onto grey (0.5) background — required by TripoSR
+        img_np = np.array(img).astype(np.float32) / 255.0
+        img_np = img_np[:, :, :3] * img_np[:, :, 3:4] + (1 - img_np[:, :, 3:4]) * 0.5
+        img = Image.fromarray((img_np * 255.0).astype(np.uint8)).resize(
             (self.config.image_size, self.config.image_size), Image.LANCZOS
         )
         return img
@@ -127,7 +131,9 @@ class TripoSRReconstructor:
             scene_codes = self._model([img], device=self._device)
             meshes = self._model.extract_mesh(
                 scene_codes,
+                has_vertex_color=True,
                 resolution=self.config.mc_resolution,
+                threshold=self.config.mc_threshold,
             )
 
         mesh = meshes[0]

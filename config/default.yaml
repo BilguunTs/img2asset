@@ -17,13 +17,13 @@ reconstruct:
 triposr:
   mesh_format: glb
   chunk_size: 8192              # lower = less VRAM (try 4096 on 16GB unified memory)
-  mc_resolution: 256            # marching cubes res: 128=fast, 256=quality
+  mc_resolution: 320            # marching cubes res: 128=fast, 256=quality, 320=higher detail
   remove_background: true
   image_size: 512
   output_dir: outputs/meshes
 
 cleanup:
-  blender_bin: blender          # path to blender binary (or just "blender" if in PATH)
+  blender_bin: /Applications/Blender.app/Contents/MacOS/Blender  # path to blender binary (or just "blender" if in PATH)
   target_poly_count: 8000       # decimation target for game assets
   smooth_iterations: 2
   fill_holes: true
